@@ -41,32 +41,5 @@ func main() {
 	// 	table.InsertBook(ctx, conn, book)
 	// }
 	// fmt.Println("Добавлено 50 книг!")
-	var books []table.Book
-	for i := 0; i <= 45; i += 5 {
-		SQLQuery := "SELECT * FROM books LIMIT 5 OFFSET $1;"
-		var rows pgx.Rows
-		rows, err = conn.Query(ctx, SQLQuery, i)
-		if err != nil {
-			fmt.Println(err)
-		}
-		for rows.Next() {
-			var book table.Book
-			err = rows.Scan(
-				&book.ID,
-				&book.Name,
-				&book.Author,
-				&book.Review,
-				&book.Year,
-				&book.IsRead,
-				&book.AddedAt,
-				&book.ReadAt,
-			)
-			if err != nil {
-				fmt.Println(err)
-			}
-			books = append(books, book)
-		}
-		pp.Println(books)
-		books = []table.Book{}
-	}
+	table.ListPages(ctx, conn, 5) // Выведет по 5 книг на страницу
 }

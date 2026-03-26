@@ -2,9 +2,11 @@ package table
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/k0kubun/pp"
 )
 
 type Book struct {
@@ -94,6 +96,47 @@ func DeleteBooks(ctx context.Context, conn *pgx.Conn, ids []int) error {
 	SQLQuerry := `DELETE FROM books WHERE id = ANY($1);`
 	_, err := conn.Exec(ctx, SQLQuerry, ids)
 	return err
+}
+
+func ListPages(ctx context.Context, conn *pgx.Conn, N int) ([][]Book, error) {
+	var lenn int
+	err := conn.QueryRow(ctx, "SELECT COUNT(*) FROM books").Scan(&lenn)
+	if err != nil {
+		return nil, err
+	}
+	var tom [][]Book
+	var books []Book
+	for i := 0; i < lenn; i += N {
+		SQLQuery := "SELECT * FROM books LIMIT $2 OFFSET $1;"
+		var rows pgx.Rows
+		rows, err = conn.Query(ctx, SQLQuery, i, N)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var book Book
+			err = rows.Scan(
+				&book.ID,
+				&book.Name,
+				&book.Author,
+				&book.Review,
+				&book.Year,
+				&book.IsRead,
+				&book.AddedAt,
+				&book.ReadAt,
+			)
+			if err != nil {
+				return nil, err
+			}
+			books = append(books, book)
+		}
+		pageNumber := (i / N) + 1
+		fmt.Printf("Страница %d: ", pageNumber)
+		pp.Println(books)
+		tom = append(tom, books)
+		books = []Book{}
+	}
+	return tom, err
 }
 
 // CREATE TABLE IF NOT EXISTS books (
