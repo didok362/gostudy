@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"postgres2/db"
 	"postgres2/table"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/k0kubun/pp"
@@ -29,18 +28,45 @@ func main() {
 	}
 	fmt.Println("Подключено!")
 	table.CreateTable(ctx, conn)
-	BookToUpdate := table.Book{
-		ID:      1, // ID существующей книги
-		Name:    "Новое имя",
-		Author:  "Новый автор",
-		Review:  nil,
-		Year:    2025,
-		IsRead:  true,
-		AddedAt: time.Now(),
-		ReadAt:  nil,
+	// for i := 1; i <= 50; i++ {
+	// 	book := table.Book{
+	// 		Name:    fmt.Sprintf("Книга номер %d", i),
+	// 		Author:  fmt.Sprintf("Автор %d", i),
+	// 		Year:    1900 + i,
+	// 		IsRead:  false,
+	// 		AddedAt: time.Now(),
+	// 		Review:  nil,
+	// 		ReadAt:  nil,
+	// 	}
+	// 	table.InsertBook(ctx, conn, book)
+	// }
+	// fmt.Println("Добавлено 50 книг!")
+	var books []table.Book
+	for i := 0; i <= 45; i += 5 {
+		SQLQuery := "SELECT * FROM books LIMIT 5 OFFSET $1;"
+		var rows pgx.Rows
+		rows, err = conn.Query(ctx, SQLQuery, i)
+		if err != nil {
+			fmt.Println(err)
+		}
+		for rows.Next() {
+			var book table.Book
+			err = rows.Scan(
+				&book.ID,
+				&book.Name,
+				&book.Author,
+				&book.Review,
+				&book.Year,
+				&book.IsRead,
+				&book.AddedAt,
+				&book.ReadAt,
+			)
+			if err != nil {
+				fmt.Println(err)
+			}
+			books = append(books, book)
+		}
+		pp.Println(books)
+		books = []table.Book{}
 	}
-
-	table.UpdateBook(ctx, conn, BookToUpdate)
-	PrintBooks(ctx, conn)
-	table.DeleteBooks(ctx, conn, []int{2, 3})
 }
